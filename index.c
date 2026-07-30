@@ -37,7 +37,7 @@ static int64_t sa_to_bwt(void *a, int use_int32, uint8_t *seq, int64_t len, int 
 	return primary;
 }
 
-static mb_bwt_t *mb_bwt_libsais(const l2b_t *l2b, int sa_bit, int both_strand, int is_meth, int n_thread)
+mb_bwt_t *mb_bwt_libsais(const l2b_t *l2b, int sa_bit, int both_strand, int is_meth, int n_thread)
 {
 	const int fs = 10000;
 	uint8_t *seq;

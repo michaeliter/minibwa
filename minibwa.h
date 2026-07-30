@@ -130,6 +130,15 @@ void mb_idx_destroy(mb_idx_t *idx);
 const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);
 
+// Build an index from a FASTA/FASTQ (optionally gzipped) file, writing
+// <prefix>.l2b and <prefix>.mbw (plus <prefix>.meth.mbw when is_meth is set)
+// for a later mb_idx_load(prefix, is_meth). Uses the libsais suffix-array
+// path only (equivalent to `minibwa index`, i.e. never the GPL low-memory
+// -l path). sa_bit is the SA sample-rate exponent (1/(1<<sa_bit); CLI
+// default 4); n_thread is only honored when built with LIBSAIS_OPENMP.
+// Returns 0 on success, -1 if fasta could not be opened/read.
+int mb_idx_build(const char *fasta, const char *prefix, int sa_bit, int n_thread, int32_t is_meth, uint64_t seed);
+
 void mb_opt_init(mb_opt_t *opt);
 int mb_opt_preset(mb_opt_t *opt, const char *preset);
 
