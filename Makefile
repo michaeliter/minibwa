@@ -5,7 +5,7 @@ LDFLAGS=
 INCLUDES=
 LOBJS=		kommon.o kalloc.o bwt.o l2bit.o options.o seed.o map-algo.o lchain.o align.o pe.o cs.o format.o \
 			ksw2_extz2_sse.o ksw2_extd2_sse.o ksw2_ll_sse.o \
-			libsais.o libsais64.o index.o index-api.o
+			libsais.o libsais64.o index.o index-api.o map-batch-pe.o
 AOBJS=		kthread.o libsais.o libsais64.o index.o bseq.o map-main.o fastmap.o
 MALLOC_O=	mimalloc.o
 PROG=		minibwa
@@ -76,6 +76,7 @@ format.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h bseq.h
 index.o: libsais.h libsais64.h kommon.h ketopt.h mbpriv.h minibwa.h l2bit.h
 index.o: bwt.h bseq.h
 index-api.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h bseq.h
+map-batch-pe.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h bseq.h kalloc.h
 kalloc.o: kalloc.h
 kommon.o: kommon.h
 ksw2_extd2_sse.o: ksw2.h

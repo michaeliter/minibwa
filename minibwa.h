@@ -178,6 +178,33 @@ mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const c
  */
 mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq, const int32_t *qlen, const char **seq, int32_t *n_hit, mb_tbuf_t *b, const char **qname);
 
+/**
+ * Align a batch of paired-end reads, estimating the insert-size distribution
+ * from the batch itself once enough pairs are available.
+ *
+ * mb_map_batch() also pairs mates when opt->flag has MB_F_PE set, but only
+ * against the *predefined* insert-size stats in opt (pe_avg/pe_std/pe_lo/
+ * pe_hi) -- it never estimates real stats from the data (that only happens
+ * in the minibwa CLI, which is not part of this library). This function
+ * does: it uses the predefined stats until >= 20 pairs are available (same
+ * threshold the CLI uses), then switches to a data-driven estimate. Falls
+ * through to mb_map_batch() unchanged when MB_F_PE is unset.
+ *
+ * @param opt        options, typically initialized by mb_opt_init(); MB_F_PE
+ *                   selects paired-end mode
+ * @param idx        index
+ * @param n_seq      number of sequences; mates must be interleaved as
+ *                   consecutive pairs (mate0, mate1, mate0, mate1, ...)
+ * @param qlen       query lengths, of size n_seq
+ * @param seq        query sequences, ASCII or 01/2/3 encoded, of size n_seq
+ * @param n_hit      (out) number of hits, of size n_seq
+ * @param b          thread buffer; can be NULL
+ * @param qname      query name, of size n_seq
+ *
+ * @return hits, of size n_seq
+ */
+mb_hit_t **mb_map_batch_pe(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq, const int32_t *qlen, const char **seq, int32_t *n_hit, mb_tbuf_t *b, const char **qname);
+
 #ifdef __cplusplus
 }
 #endif
