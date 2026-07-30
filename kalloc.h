@@ -13,12 +13,12 @@ typedef struct {
 
 void *mb_kmalloc(void *km, size_t size);
 void *mb_krealloc(void *km, void *ptr, size_t size);
-void *krelocate(void *km, void *ap, size_t n_bytes);
+void *mb_krelocate(void *km, void *ap, size_t n_bytes);
 void *mb_kcalloc(void *km, size_t count, size_t size);
 void mb_kfree(void *km, void *ptr);
 
 void *mb_km_init(void);
-void *km_init2(void *km_par, size_t min_core_size);
+void *mb_km_init2(void *km_par, size_t min_core_size);
 void mb_km_destroy(void *km);
 void mb_km_stat(const void *_km, km_stat_t *s);
 void mb_km_stat_print(const void *km);

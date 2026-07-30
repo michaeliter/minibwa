@@ -35,7 +35,7 @@ static void panic(const char *s)
 	abort();
 }
 
-void *km_init2(void *km_par, size_t min_core_size)
+void *mb_km_init2(void *km_par, size_t min_core_size)
 {
 	kmem_t *km;
 	km = (kmem_t*)mb_kcalloc(km_par, 1, sizeof(kmem_t));
@@ -45,7 +45,7 @@ void *km_init2(void *km_par, size_t min_core_size)
 	return (void*)km;
 }
 
-void *mb_km_init(void) { return km_init2(0, 0); }
+void *mb_km_init(void) { return mb_km_init2(0, 0); }
 
 void mb_km_destroy(void *_km)
 {
@@ -185,7 +185,7 @@ void *mb_krealloc(void *_km, void *ap, size_t n_bytes) // TODO: this can be made
 	return q;
 }
 
-void *krelocate(void *km, void *ap, size_t n_bytes)
+void *mb_krelocate(void *km, void *ap, size_t n_bytes)
 {
 	void *p;
 	if (km == 0 || ap == 0) return ap;
