@@ -179,6 +179,7 @@ void *mb_krealloc(void *_km, void *ap, size_t n_bytes) // TODO: this can be made
 	cap = (*p) * sizeof(header_t) - sizeof(size_t);
 	if (cap >= n_bytes) return ap; /* TODO: this prevents shrinking */
 	q = (size_t*)mb_kmalloc(km, n_bytes);
+	if (q == NULL) return NULL; /* match realloc(3): leave ap valid/unfreed on failure */
 	memcpy(q, ap, cap);
 	mb_kfree(km, ap);
 	return q;
