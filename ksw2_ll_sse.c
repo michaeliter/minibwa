@@ -24,7 +24,7 @@
 		if ((__i) >= (__m)) { \
 			(__m) = (__i) + 1; \
 			(__m) += ((__m)>>1) + 16; \
-			(ptr) = (type*)krealloc(km, ptr, (__m) * sizeof(type)); \
+			(ptr) = (type*)mb_krealloc(km, ptr, (__m) * sizeof(type)); \
 		} \
 	} while (0)
 #endif
@@ -47,7 +47,7 @@ typedef struct {
  *
  * @return       Query data structure
  */
-void *ksw_ll_qinit(void *km, int size, int qlen, const uint8_t *query, int m, const int8_t *mat)
+void *mb_ksw_ll_qinit(void *km, int size, int qlen, const uint8_t *query, int m, const int8_t *mat)
 {
 	kswq_t *q;
 	int slen, a, tmp, p;
@@ -55,7 +55,7 @@ void *ksw_ll_qinit(void *km, int size, int qlen, const uint8_t *query, int m, co
 	size = size > 1? 2 : 1;
 	p = 8 * (3 - size); // # values per __m128i
 	slen = (qlen + p - 1) / p; // segmented length
-	q = (kswq_t*)kmalloc(km, sizeof(kswq_t) + 256 + 16 * slen * (m + 4)); // a single block of memory
+	q = (kswq_t*)mb_kmalloc(km, sizeof(kswq_t) + 256 + 16 * slen * (m + 4)); // a single block of memory
 	q->qp = (__m128i*)(((size_t)q + sizeof(kswq_t) + 15) >> 4 << 4); // align memory
 	q->H0 = q->qp + slen * m;
 	q->H1 = q->H0 + slen;
@@ -217,7 +217,7 @@ end_loop_u8:
 			}
 		}
 	}
-	kfree(q->km, b);
+	mb_kfree(q->km, b);
 	return r;
 }
 
@@ -328,11 +328,11 @@ end_loop_i16:
 			}
 		}
 	}
-	kfree(q->km, b);
+	mb_kfree(q->km, b);
 	return r;
 }
 
-int ksw_ll_i16(void *q_, int tlen, const uint8_t *target, int _gapo, int _gape, int *qe, int *te)
+int mb_ksw_ll_i16(void *q_, int tlen, const uint8_t *target, int _gapo, int _gape, int *qe, int *te)
 {
 	ksw_llrst_t r;
 	r = ksw_ll_i16_core(q_, tlen, target, _gapo, _gape, 0);

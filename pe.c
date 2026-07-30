@@ -61,7 +61,7 @@ static int32_t mb_hit_sum_score(void *km, int32_t n_hit, const mb_hit_t *hit)
 		else sc += h->p->dp_max;
 		qe = h->qe;
 	}
-	if (a != aa) kfree(km, a);
+	if (a != aa) mb_kfree(km, a);
 	return sc;
 }
 
@@ -100,7 +100,7 @@ void mb_pestat(void *km, const mb_opt_t *opt, int32_t n_frag, const int32_t *seg
 		int p25, p50, p75, x;
 		if (q->n < MIN_DIR_CNT || q->n < max * MIN_DIR_RATIO) {
 			r->failed = 1;
-			kfree(km, q->a);
+			mb_kfree(km, q->a);
 			continue;
 		}
 		radix_sort_mb64(q->a, q->a + q->n);
@@ -128,7 +128,7 @@ void mb_pestat(void *km, const mb_opt_t *opt, int32_t n_frag, const int32_t *seg
 		if (r->lo < 1) r->lo = 1;
 		if (kom_verbose >= 3)
 			fprintf(stderr, "[M::%s::%c%c] low and high boundaries for proper pairs: (%d, %d)\n", __func__, "FR"[d>>1&1], "FR"[d&1], r->lo, r->hi);
-		kfree(km, q->a);
+		mb_kfree(km, q->a);
 	}
 }
 
@@ -202,8 +202,8 @@ static void mb_pair_hits(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 			if (pp[i].x>>32 >= ret->score - tmp)
 				ret->n_sub++;
 	}
-	kfree(km, pp);
-	kfree(km, pa);
+	mb_kfree(km, pp);
+	mb_kfree(km, pa);
 }
 
 static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tlen, const uint8_t *tseq, int32_t kmer, l2b_meth_t mt, int32_t *max_i, int32_t *n_good, int32_t *n_kmer)
@@ -241,8 +241,8 @@ static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tle
 			max = a[i], *max_i = i;
 	for (i = 0, *n_good = 0; i < tlen; ++i)
 		if (a[i] > max>>1) ++*n_good;
-	kfree(km, h);
-	kfree(km, a);
+	mb_kfree(km, h);
+	mb_kfree(km, a);
 	return max;
 }
 
@@ -263,7 +263,7 @@ static void mb_matesw_align(void *km, const mb_opt_t *opt, int32_t qlen, uint8_t
 	if (max_sc >= 32767) return;
 	ksw_gen_nt4_mat(mat, 1, b_mm, b_ts, b_ambi, (int)mt);
 	sz = max_sc < 255 - b_mm? 1 : 2;
-	qp = ksw_ll_qinit(km, sz, qlen, qseq, 5, mat);
+	qp = mb_ksw_ll_qinit(km, sz, qlen, qseq, 5, mat);
 	xtra = KSW_LL_SUBO | opt->min_len;
 	if (sz == 1)
 		rst = ksw_ll_u8_core(qp, tlen, tseq, gapo, gape, xtra);
@@ -277,14 +277,14 @@ static void mb_matesw_align(void *km, const mb_opt_t *opt, int32_t qlen, uint8_t
 		for (i = 0; i < tlen; ++i) fputc("ACGTN"[tseq[i]], stderr);
 		fputc('\n', stderr);
 	}
-	kfree(km, qp);
+	mb_kfree(km, qp);
 	if (rst.score >= opt->min_dp_max && rst.score >= min_sc) { // min_sc is already divided by opt->a
 		int32_t te = rst.te + 1, qe = rst.qe + 1, ksw_flag = KSW_EZ_EXTZ_ONLY|KSW_EZ_RIGHT|KSW_EZ_REV_CIGAR;
 		mb_seq_rev(qe, qseq);
 		mb_seq_rev(te, tseq);
 		ksw_gen_nt4_mat(mat, opt->a, opt->b, opt->b_ts, opt->b_ambi, (int)mt);
 		if (mt != L2B_METH_NONE) ksw_flag |= KSW_EZ_GENERIC_SC;
-		ksw_extz2_sse(km, qe, qseq, te, tseq, 5, mat, opt->q, opt->e, opt->bw, opt->zdrop, opt->end_bonus, ksw_flag, ez);
+		mb_ksw_extz2_sse(km, qe, qseq, te, tseq, 5, mat, opt->q, opt->e, opt->bw, opt->zdrop, opt->end_bonus, ksw_flag, ez);
 		mb_seq_rev(qe, qseq);
 		mb_seq_rev(te, tseq);
 		if (ez->n_cigar > 0 && ez->max >= opt->min_dp_max * opt->a) {
@@ -371,7 +371,7 @@ static const mb_hit_t *mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t
 				h1->a[h1->n++] = ht;
 				ret = &h1->a[h1->n - 1];
 			}
-			kfree(km, ref);
+			mb_kfree(km, ref);
 		}
 	}
 	return ret;
@@ -449,9 +449,9 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 		}
 	}
 
-	kfree(km, ez.cigar);
-	kfree(km, qs[0][0]);
-	kfree(km, a);
+	mb_kfree(km, ez.cigar);
+	mb_kfree(km, qs[0][0]);
+	mb_kfree(km, a);
 	n_add = (ha[0].n - n_hit[0]) + (ha[1].n - n_hit[1]);
 	for (r = 0; r < 2; ++r)
 		n_hit[r] = ha[r].n, hit[r] = ha[r].a;

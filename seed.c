@@ -98,8 +98,8 @@ void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, const int3
 	}
 	if (n_s > 0)
 		mb_bwt_smem_batch(km, bwt, n_s, s);
-	kfree(km, nv);
-	kfree(km, s);
+	mb_kfree(km, nv);
+	mb_kfree(km, s);
 }
 
 /*****************************
@@ -255,11 +255,11 @@ static void mb_anchor_split_meth(void *km, const l2b_t *l2b, int32_t min_len, in
 			}
 		}
 	}
-	kfree(km, tseq);
+	mb_kfree(km, tseq);
 	Kgrow(km, mb_anchor_t, v->a, n_a, v->m);
 	memcpy(v->a, a, n_a * sizeof(mb_anchor_t));
 	v->n = n_a;
-	kfree(km, a);
+	mb_kfree(km, a);
 }
 
 /* Converting seed intervals to anchors. This function batches small SA
@@ -316,9 +316,9 @@ double mb_anchor(void *km, const mb_idx_t *idx, mb_sai_v *u, int32_t min_len, in
 		assert(m <= m_a); // shouldn't happen!
 	}
 	process_batch(km, idx, aux, m, b, a, qlen, mt, u, v);
-	kfree(km, b);
-	kfree(km, a);
-	kfree(km, aux);
+	mb_kfree(km, b);
+	mb_kfree(km, a);
+	mb_kfree(km, aux);
 
 	if (mt != L2B_METH_NONE && v->n > 0) {
 		int64_t t0, t1;

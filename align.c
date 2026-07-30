@@ -57,10 +57,10 @@ static int mm_test_zdrop(void *km, const mb_opt_t *opt, const uint8_t *qseq, con
 			int c = qseq[pos[1][1] - i - 1];
 			qseq2[i] = c >= 4? 4 : 3 - c;
 		}
-		qp = ksw_ll_qinit(km, 2, q_len, qseq2, 5, mat);
-		score = ksw_ll_i16(qp, t_len, tseq + pos[0][0], opt->q, opt->e, &q_off, &t_off);
-		kfree(km, qseq2);
-		kfree(km, qp);
+		qp = mb_ksw_ll_qinit(km, 2, q_len, qseq2, 5, mat);
+		score = mb_ksw_ll_i16(qp, t_len, tseq + pos[0][0], opt->q, opt->e, &q_off, &t_off);
+		mb_kfree(km, qseq2);
+		mb_kfree(km, qp);
 		if (score >= opt->min_chain_score * opt->a && score >= opt->min_dp_max * opt->a)
 			return 2; // there is a potential inversion
 	}
@@ -266,7 +266,7 @@ void mb_update_extra(void *km, mb_hit_t *r, const uint8_t *qseq, const uint8_t *
 	if (opt_flag & (MB_F_WRITE_DS|MB_F_WRITE_CS|MB_F_WRITE_MD)) {
 		kstring_t str = {0,0,0};
 		str.m = 256;
-		str.s = kmalloc(km, str.m);
+		str.s = mb_kmalloc(km, str.m);
 		if (opt_flag & (MB_F_WRITE_DS|MB_F_WRITE_CS))
 			mb_write_cs_ds(km, &str, tseq, qseq, r, !!(opt_flag & MB_F_WRITE_DS));
 		else
@@ -278,7 +278,7 @@ void mb_update_extra(void *km, mb_hit_t *r, const uint8_t *qseq, const uint8_t *
 			r->p = (mb_extra_t*)realloc(r->p, r->p->cap * 4);
 		}
 		memcpy(&r->p->cigar[r->p->n_cigar], str.s, str.l + 1);
-		kfree(km, str.s);
+		mb_kfree(km, str.s);
 	}
 }
 
@@ -334,7 +334,7 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 	if ((opt->b_ts != 0 && opt->b != opt->b_ts) || (opt->flag&MB_F_METH))
 		ksw_flag |= KSW_EZ_GENERIC_SC;
 	if ((ksw_flag & KSW_EZ_EXTZ_ONLY) && tlen >= qlen) { // ungapped extension
-		ksw_reset_extz(ez);
+		mb_ksw_reset_extz(ez);
 		for (j = 0, ez->score = ez->max = 0; j < qlen; ++j) {
 			ez->score += mat[tseq[j] * 5 + qseq[j]];
 			n_mm += (tseq[j] > 3 || qseq[j] > 3 || mat[tseq[j] * 5 + qseq[j]] < 0);
@@ -344,19 +344,19 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 			ez->mqe = ez->score, ez->mqe_t = qlen - 1;
 			if (ez->mqe + end_bonus >= ez->max) {
 				ez->reach_end = 1;
-				ez->cigar = ksw_push_cigar(km, &ez->n_cigar, &ez->m_cigar, ez->cigar, MB_CIGAR_MATCH, qlen);
+				ez->cigar = mb_ksw_push_cigar(km, &ez->n_cigar, &ez->m_cigar, ez->cigar, MB_CIGAR_MATCH, qlen);
 				return;
 			}
 		}
 	} else if (qlen == tlen && !(ksw_flag & KSW_EZ_EXTZ_ONLY)) { // ungapped alignment
 		int32_t max_gapped_score = (qlen - 2) * opt->a - 2 * (opt->q + opt->e);
-		ksw_reset_extz(ez);
+		mb_ksw_reset_extz(ez);
 		for (j = 0, ez->score = 0; j < qlen; ++j) {
 			ez->score += mat[tseq[j] * 5 + qseq[j]];
 			n_mm += (tseq[j] > 3 || qseq[j] > 3 || mat[tseq[j] * 5 + qseq[j]] < 0);
 		}
 		if (n_mm <= 3 || ez->score > max_gapped_score) {
-			ez->cigar = ksw_push_cigar(km, &ez->n_cigar, &ez->m_cigar, ez->cigar, MB_CIGAR_MATCH, qlen);
+			ez->cigar = mb_ksw_push_cigar(km, &ez->n_cigar, &ez->m_cigar, ez->cigar, MB_CIGAR_MATCH, qlen);
 			return;
 		}
 	}
@@ -368,12 +368,12 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 	}
 
 	if (opt->max_sw_mat > 0 && (int64_t)tlen * qlen > opt->max_sw_mat) { // too much memory; skip alignment
-		ksw_reset_extz(ez);
+		mb_ksw_reset_extz(ez);
 		ez->zdropped = 1;
 	} else if (opt->q == opt->q2 && opt->e == opt->e2) { // affine gap
-		ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
+		mb_ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
 	} else { // dual affine gap
-		ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, opt->q2, opt->e2, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
+		mb_ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, opt->q2, opt->e2, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
 		//fprintf(stderr, "D2\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", tlen, qlen, !!(ksw_flag&KSW_EZ_EXTZ_ONLY), ez->max_t, ez->max_q, ez->max, ez->zdropped);
 	}
 	if (kom_dbg_flag & MB_DBG_ALN_SEQ) {
@@ -443,7 +443,7 @@ static void mm_filter_bad_seeds(void *km, int as1, int cnt1, mb_anchor_t *a, int
 		if (max_diff > diff_thres && max_diff > max)
 			max = max_diff, max_st = k, max_en = max_diff_l;
 	}
-	kfree(km, K);
+	mb_kfree(km, K);
 }
 
 static void mm_filter_bad_seeds_alt(void *km, int as1, int cnt1, mb_anchor_t *a, int min_gap, int max_ext)
@@ -480,7 +480,7 @@ static void mm_filter_bad_seeds_alt(void *km, int as1, int cnt1, mb_anchor_t *a,
 		}
 		k = l;
 	}
-	kfree(km, K);
+	mb_kfree(km, K);
 }
 
 static void mm_fix_bad_ends(const mb_hit_t *r, const mb_anchor_t *a, int bw, int min_match, int32_t *as, int32_t *cnt)
@@ -753,7 +753,7 @@ static void mb_align1(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int qle
 		mb_update_extra(km, r, qseq, tseq, mat, opt->q, opt->e, opt->flag, !is_sr);
 	}
 
-	kfree(km, tseq);
+	mb_kfree(km, tseq);
 }
 
 static int mb_align1_inv(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int qlen, uint8_t *qseq0[2], l2b_meth_t mt, const mb_hit_t *r1, const mb_hit_t *r2, mb_hit_t *r_inv, ksw_extz_t *ez)
@@ -776,15 +776,15 @@ static int mb_align1_inv(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int 
 	if (!r1->rev) mt = l2b_meth_rev(mt); // TODO: check if this is correct
 	ksw_gen_nt4_mat(mat, opt->a, opt->b, opt->b_ts, opt->b_ambi, (int)mt);
 
-	tseq = (uint8_t*)kmalloc(km, tl);
+	tseq = (uint8_t*)mb_kmalloc(km, tl);
 	l2b_getseq(mi->l2b, r1->tid, r1->te, r2->ts, tseq);
 	qseq = r1->rev? &qseq0[0][r2->qe] : &qseq0[1][qlen - r2->qs];
 
 	mb_seq_rev(ql, qseq);
 	mb_seq_rev(tl, tseq);
-	qp = ksw_ll_qinit(km, 2, ql, qseq, 5, mat);
-	score = ksw_ll_i16(qp, tl, tseq, opt->q, opt->e, &q_off, &t_off);
-	kfree(km, qp);
+	qp = mb_ksw_ll_qinit(km, 2, ql, qseq, 5, mat);
+	score = mb_ksw_ll_i16(qp, tl, tseq, opt->q, opt->e, &q_off, &t_off);
+	mb_kfree(km, qp);
 	mb_seq_rev(ql, qseq);
 	mb_seq_rev(tl, tseq);
 	if (score < opt->min_dp_max * opt->a) goto end_align1_inv;
@@ -810,7 +810,7 @@ static int mb_align1_inv(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int 
 	mb_update_extra(km, r_inv, &qseq[q_off], &tseq[t_off], mat, opt->q, opt->e, opt->flag, mb_is_sr_mode(opt, qlen));
 	ret = 1;
 end_align1_inv:
-	kfree(km, tseq);
+	mb_kfree(km, tseq);
 	return ret;
 }
 
@@ -917,8 +917,8 @@ mb_hit_t *mb_align_skeleton(void *km, const mb_opt_t *opt, const mb_idx_t *mi, i
 			}
 		}
 	}
-	kfree(km, qseq0[0]);
-	kfree(km, ez.cigar);
+	mb_kfree(km, qseq0[0]);
+	mb_kfree(km, ez.cigar);
 	mb_filter_hits(opt, qlen, &n_regs, regs);
 	if (!mb_is_sr_mode(opt, qlen)) {
 		mb_update_dp_max(qlen, n_regs, regs, 0.9, opt->a, opt->b);

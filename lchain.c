@@ -85,7 +85,7 @@ static uint64_t *mb_chain_backtrack(void *km, int64_t n, const int32_t *f, const
 			else n_v = n_v0;
 		}
 	}
-	kfree(km, z);
+	mb_kfree(km, z);
 	assert(n_v < INT32_MAX);
 	*n_u_ = n_u, *n_v_ = n_v;
 	return u;
@@ -105,7 +105,7 @@ static mb_anchor_t *compact_a(void *km, const l2b_t *l2b, int32_t n_u, uint64_t 
 		for (j = 0; j < ni; ++j)
 			b[k++] = a[v[k0 + (ni - j - 1)]];
 	}
-	kfree(km, v);
+	mb_kfree(km, v);
 
 	// sort u[] and a[] by the target position, such that adjacent chains may be joined
 	w = Kmalloc(km, mb128_t, n_u);
@@ -125,7 +125,7 @@ static mb_anchor_t *compact_a(void *km, const l2b_t *l2b, int32_t n_u, uint64_t 
 	}
 	memcpy(u, u2, n_u * 8);
 	memcpy(b, a, k * sizeof(mb_anchor_t)); // write _a_ to _b_ and deallocate _a_ because _a_ is oversized, sometimes a lot
-	kfree(km, u2); kfree(km, w); kfree(km, a);
+	mb_kfree(km, u2); mb_kfree(km, w); mb_kfree(km, a);
 	return b;
 }
 
@@ -171,7 +171,7 @@ mb_anchor_t *mb_lchain_dp(void *km, const l2b_t *l2b, int max_dist_x, int max_di
 
 	if (_u) *_u = 0, *n_u_ = 0;
 	if (n == 0 || a == 0) {
-		kfree(km, a);
+		mb_kfree(km, a);
 		return 0;
 	}
 	if (max_dist_x < bw) max_dist_x = bw;
@@ -222,9 +222,9 @@ mb_anchor_t *mb_lchain_dp(void *km, const l2b_t *l2b, int max_dist_x, int max_di
 
 	u = mb_chain_backtrack(km, n, f, p, v, t, min_sc, max_drop, &n_u, &n_v);
 	*n_u_ = n_u, *_u = u; // NB: note that u[] may not be sorted by score here
-	kfree(km, t); kfree(km, f); kfree(km, p);
+	mb_kfree(km, t); mb_kfree(km, f); mb_kfree(km, p);
 	if (n_u == 0) {
-		kfree(km, a); kfree(km, v);
+		mb_kfree(km, a); mb_kfree(km, v);
 		return 0;
 	}
 	return compact_a(km, l2b, n_u, u, n_v, v, a);

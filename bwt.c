@@ -365,7 +365,7 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 		tq_push(&tq, i);
 		s->stage = 1;
 		s->x = s->st;
-		if (s->v->m < 64) { // preallocate to avoid frequent krealloc(), which can be slow
+		if (s->v->m < 64) { // preallocate to avoid frequent mb_krealloc(), which can be slow
 			s->v->m = 64;
 			s->v->a = Krealloc(km, mb_sai_t, s->v->a, s->v->m);
 		}
@@ -453,7 +453,7 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 		}
 		tq_push(&tq, idx);
 	}
-	kfree(km, tq.a);
+	mb_kfree(km, tq.a);
 }
 
 /***************************
@@ -531,7 +531,7 @@ void mb_bwt_sa_batch(void *km, const mb_bwt_t *bwt, int64_t n, uint64_t *x)
 				mb_bwt_block_prefetch(bwt, z[i].x);
 		}
 	}
-	kfree(km, z);
+	mb_kfree(km, z);
 }
 
 /******************

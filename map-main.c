@@ -73,9 +73,9 @@ static void worker_for_se_batch(void *data, long i, int tid)
 	}
 	assert(p == n);
 	mb_seed_intv_batch(km, idx->bwt, n, len, seq, opt->min_len, opt->max_sub_occ, sai);
-	kfree(km, seq);
-	kfree(km, len);
-	kfree(km, buf);
+	mb_kfree(km, seq);
+	mb_kfree(km, len);
+	mb_kfree(km, buf);
 
 	for (k = p = 0; k < s->sb_cnt[i]; ++k) {
 		int32_t off = s->seg_off[s->sb_off[i] + k];
@@ -89,7 +89,7 @@ static void worker_for_se_batch(void *data, long i, int tid)
 			++p;
 		}
 	}
-	kfree(km, sai);
+	mb_kfree(km, sai);
 	mb_tbuf_reset(b, opt->cap_kalloc);
 }
 
@@ -184,9 +184,9 @@ static void *worker_pipeline(void *shared, int step, void *in)
 				s->pes[1].lo = opt->pe_lo, s->pes[1].hi = opt->pe_hi;
 			} else { // estimate PE stats from data
 				void *km;
-				km = opt->flag & MB_F_NO_KALLOC? 0 : km_init();
+				km = opt->flag & MB_F_NO_KALLOC? 0 : mb_km_init();
 				mb_pestat(km, opt, s->n_frag, s->seg_off, s->seg_cnt, s->n_hit, s->hit, s->pes);
-				if (km) km_destroy(km);
+				if (km) mb_km_destroy(km);
 			}
 			kt_for(opt->n_thread, worker_for_pe, in, s->n_frag);
 		}
@@ -201,7 +201,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
 		for (i = 0; i < opt->n_thread; ++i)
 			mb_tbuf_destroy(s->tbuf[i]);
 		free(s->tbuf);
-		if (!(opt->flag & MB_F_NO_KALLOC)) km = km_init();
+		if (!(opt->flag & MB_F_NO_KALLOC)) km = mb_km_init();
 
 		for (k = 0; k < s->n_frag; ++k) {
 			int32_t seg_st = s->seg_off[k], seg_en = s->seg_off[k] + s->seg_cnt[k];
@@ -247,7 +247,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
 
 		free(out.s);
 		free(s->hit); free(s->n_hit); free(s->seq);
-		km_destroy(km);
+		mb_km_destroy(km);
 		if (kom_verbose >= 3)
 			fprintf(stderr, "[M::%s::%.3f*%.2f] mapped %ld bp in %ld sequences\n", __func__, kom_realtime(), kom_percent_cpu(), (long)tot_len, (long)s->n_seq);
 		free(s);

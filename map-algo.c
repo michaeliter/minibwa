@@ -96,7 +96,7 @@ mb_tbuf_t *mb_tbuf_init(int no_kalloc)
 {
 	mb_tbuf_t *b;
 	b = kom_calloc(mb_tbuf_t, 1);
-	if (!no_kalloc) b->km = km_init();
+	if (!no_kalloc) b->km = mb_km_init();
 	return b;
 }
 
@@ -107,7 +107,7 @@ void *mb_tbuf_km(mb_tbuf_t *b)
 
 void mb_tbuf_destroy(mb_tbuf_t *b)
 {
-	if (b->km) km_destroy(b->km);
+	if (b->km) mb_km_destroy(b->km);
 	free(b);
 }
 
@@ -116,11 +116,11 @@ int32_t mb_tbuf_reset(mb_tbuf_t *b, int64_t max_blk_sz)
 	km_stat_t kmst;
 	int64_t max_sz = max_blk_sz < 1U<<28? max_blk_sz : 1U<<28;
 	if (b->km == 0) return 0;
-	km_stat(b->km, &kmst);
+	mb_km_stat(b->km, &kmst);
 	assert(kmst.n_blocks == kmst.n_cores);
 	if (kmst.largest > max_sz || kmst.capacity > max_sz * 2) {
-		km_destroy(b->km);
-		b->km = km_init();
+		mb_km_destroy(b->km);
+		b->km = mb_km_init();
 		return 1;
 	}
 	return 0;
@@ -194,7 +194,7 @@ int32_t mb_cal_high_cov(void *km, int32_t n, const mb_sai_t *sai, int32_t max_oc
 		} else hi_en = hi_en > en? hi_en : en;
 	}
 	hi_cov += hi_en - hi_st;
-	kfree(km, b);
+	mb_kfree(km, b);
 	return hi_cov;
 }
 
@@ -240,7 +240,7 @@ mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const l2b_t *l2b, int n_
 		ri->as = z[i].y >> 32;
 		mb_hit_set_coor(ri, qlen, l2b, a);
 	}
-	kfree(km, z);
+	mb_kfree(km, z);
 	return r;
 }
 
@@ -270,7 +270,7 @@ void mb_sync_hits(void *km, int n_regs, mb_hit_t *regs)
 	for (i = 0; i < n_regs; ++i)
 		max_id = max_id > regs[i].id? max_id : regs[i].id;
 	n_tmp = max_id + 1;
-	tmp = (int*)kmalloc(km, n_tmp * sizeof(int));
+	tmp = (int*)mb_kmalloc(km, n_tmp * sizeof(int));
 	for (i = 0; i < n_tmp; ++i) tmp[i] = -1;
 	for (i = 0; i < n_regs; ++i)
 		if (regs[i].id >= 0) tmp[regs[i].id] = i;
@@ -283,7 +283,7 @@ void mb_sync_hits(void *km, int n_regs, mb_hit_t *regs)
 			r->parent = tmp[r->parent];
 		else r->parent = MB_PARENT_UNSET;
 	}
-	kfree(km, tmp);
+	mb_kfree(km, tmp);
 	mb_set_sam_pri(n_regs, regs, 0); // this flag will be overwritten later anyway
 }
 
@@ -359,8 +359,8 @@ skip_uncov:
 add_primary:
 		if (n_par == 0) w[k++] = i, ri->parent = i, ri->n_sub = 0;
 	}
-	kfree(km, cov);
-	kfree(km, w);
+	mb_kfree(km, cov);
+	mb_kfree(km, w);
 }
 
 void mb_set_sam_pri(int32_t n, mb_hit_t *r, int32_t is_primary5)
@@ -397,7 +397,7 @@ void mb_select_sub(void *km, float pri_ratio, int min_diff, int best_n, int *n_,
 			if (keep[i]) r[k++] = r[i];
 			else if (r[i].p) free(r[i].p); // r->p is libc-allocated; free here before the pointer is lost
 		}
-		kfree(km, keep);
+		mb_kfree(km, keep);
 		if (k != n) mb_sync_hits(km, k, r);
 		*n_ = k;
 	}
@@ -410,8 +410,8 @@ void mb_hit_sort(void *km, int *n_regs, mb_hit_t *r)
 	mb_hit_t *t;
 
 	if (n <= 1) return;
-	aux = (mb128_t*)kmalloc(km, (size_t)n * 16);
-	t = (mb_hit_t*)kmalloc(km, (size_t)n * sizeof(mb_hit_t));
+	aux = (mb128_t*)mb_kmalloc(km, (size_t)n * 16);
+	t = (mb_hit_t*)mb_kmalloc(km, (size_t)n * sizeof(mb_hit_t));
 	for (i = n_aux = 0; i < n; ++i) {
 		if (r[i].inv || r[i].cnt >= 0) {
 			int score = r[i].p? r[i].p->dp_max : r[i].score;
@@ -427,8 +427,8 @@ void mb_hit_sort(void *km, int *n_regs, mb_hit_t *r)
 		t[n_aux - 1 - i] = r[aux[i].y];
 	memcpy(r, t, sizeof(mb_hit_t) * n_aux);
 	*n_regs = n_aux;
-	kfree(km, aux);
-	kfree(km, t);
+	mb_kfree(km, aux);
+	mb_kfree(km, t);
 }
 
 void mb_filter_hits(const mb_opt_t *opt, int qlen, int *n_regs, mb_hit_t *regs)
@@ -454,7 +454,7 @@ int mb_squeeze_a(void *km, int n_regs, mb_hit_t *regs, mb_anchor_t *a)
 {
 	int i, as = 0;
 	uint64_t *aux;
-	aux = (uint64_t*)kmalloc(km, (size_t)n_regs * 8);
+	aux = (uint64_t*)mb_kmalloc(km, (size_t)n_regs * 8);
 	for (i = 0; i < n_regs; ++i)
 		aux[i] = (uint64_t)regs[i].as << 32 | i;
 	radix_sort_mb64(aux, aux + n_regs);
@@ -466,7 +466,7 @@ int mb_squeeze_a(void *km, int n_regs, mb_hit_t *regs, mb_anchor_t *a)
 		}
 		as += r->cnt;
 	}
-	kfree(km, aux);
+	mb_kfree(km, aux);
 	return as;
 }
 
@@ -497,7 +497,7 @@ static void mb_set_inv_mapq(void *km, int n_regs, mb_hit_t *regs)
 			inv->mapq = l->mapq < r->mapq? l->mapq : r->mapq;
 		}
 	}
-	kfree(km, aux);
+	mb_kfree(km, aux);
 }
 
 void mb_set_mapq(void *km, int32_t qlen, int n_regs, mb_hit_t *regs, int min_chain_sc, int match_sc, int is_sr, int max_sr_len)
@@ -592,13 +592,13 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 
 	*n_hit_ = 0;
 	if (u->n == 0) {
-		kfree(b->km, u->a);
+		mb_kfree(b->km, u->a);
 		return 0;
 	}
 	hash  = qname? mb_hash_str(qname) : 0;
 	hash ^= mb_hash64(qlen) + mb_hash64(opt->seed);
 	hash  = mb_hash64(hash);
-	seq = kmalloc(b->km, qlen);
+	seq = mb_kmalloc(b->km, qlen);
 	for (i = 0; i < qlen; ++i) seq[i] = kom_nt4_table[(uint8_t)seq0[i]];
 	hi_cov = mb_cal_high_cov(b->km, u->n, u->a, opt->max_occ);
 	is_sr = mb_is_sr_mode(opt, qlen);
@@ -607,7 +607,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 	chn_pen_gap = opt->chain_gap_scale * .01 * opt->min_len;
 	if (kom_dbg_flag & MB_DBG_SEED) mb_dbg_seed(u->n, u->a, qname);
 	seed_ratio = mb_anchor(b->km, idx, u, opt->min_len, qlen, seq, mt, opt->max_occ, &v);
-	kfree(b->km, u->a); // no longer needed
+	mb_kfree(b->km, u->a); // no longer needed
 	u->n = 0, u->a = 0;
 
 	// initial chaining
@@ -628,7 +628,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 		en = a[as + (int32_t)w[best] - 1].qpos + 1;
 		if (qlen - (en - st) > min_rechain_len && en - st > qlen * min_rechain_ratio) {
 			for (i = 0, n_a = 0; i < n_hit; ++i) n_a += (int32_t)w[i];
-			kfree(b->km, w);
+			mb_kfree(b->km, w);
 			mb_anchor_sort(idx->l2b, n_a, a);
 			a = mb_lchain_dp(b->km, idx->l2b, opt->max_gap, opt->max_gap, opt->bw_long, opt->max_chain_skip, opt->max_chain_iter,
 							 opt->min_chain_score, chn_pen_gap, n_a, a, &n_hit, &w);
@@ -637,7 +637,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 
 	// chain ordering
 	hit = mb_gen_hit(b->km, hash, qlen, idx->l2b, n_hit, w, a);
-	kfree(b->km, w);
+	mb_kfree(b->km, w);
 	mb_set_parent(b->km, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
 	mb_select_sub(b->km, opt->pri_ratio, opt->min_len * 2, opt->best_n, &n_hit, hit);
 
@@ -656,8 +656,8 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 	mb_set_mapq(b->km, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len);
 
 	// clean up
-	kfree(b->km, a);
-	kfree(b->km, seq);
+	mb_kfree(b->km, a);
+	mb_kfree(b->km, seq);
 	*n_hit_ = n_hit;
 	return hit;
 }
@@ -685,7 +685,7 @@ mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const c
 	if (mt != L2B_METH_NONE)
 		l2b_meth_convert(mt, qlen, seq);
 	mb_seed_intv(b->km, idx->bwt, qlen, seq, opt->min_len, opt->max_sub_occ, &u);
-	kfree(b->km, seq);
+	mb_kfree(b->km, seq);
 	ret = mb_map_sai(&opt_adap, idx, qlen, seq0, mt, &u, n_hit_, b, qname);
 	if (b0 == 0) mb_tbuf_destroy(b);
 	return ret;
@@ -730,7 +730,7 @@ mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq,
 			// batch SMEM for sub-batch
 			memset(sai, 0, sb_n * sizeof(mb_sai_v));
 			mb_seed_intv_batch(km, idx->bwt, sb_n, &qlen[sb_st], seq4, opt->min_len, opt->max_sub_occ, sai);
-			for (k = 0; k < sb_n; ++k) kfree(km, seq4[k]);
+			for (k = 0; k < sb_n; ++k) mb_kfree(km, seq4[k]);
 
 			// map each sequence in sub-batch
 			for (k = 0; k < sb_n; ++k) {
@@ -747,8 +747,8 @@ mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq,
 		if (i < n_seq) sb_len += qlen[i];
 	}
 
-	kfree(km, sai);
-	kfree(km, seq4);
+	mb_kfree(km, sai);
+	mb_kfree(km, seq4);
 
 	// paired-end processing
 	if (is_pe && n_seq >= 2) {

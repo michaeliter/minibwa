@@ -122,7 +122,7 @@ void mb_write_cs_ds(void *km, kstring_t *s, const uint8_t *tseq, const uint8_t *
 			t_off += len;
 		}
 	}
-	kfree(km, tmp);
+	mb_kfree(km, tmp);
 	assert(t_off == r->te - r->ts && q_off == r->qe - r->qs);
 }
 
@@ -156,6 +156,6 @@ void mb_write_MD(void *km, kstring_t *s, const uint8_t *tseq, const uint8_t *qse
 		}
 	}
 	if (l_MD > 0) km_sprintf_lite(km, s, "%d", l_MD);
-	kfree(km, tmp);
+	mb_kfree(km, tmp);
 	assert(t_off == r->te - r->ts && q_off == r->qe - r->qs);
 }
