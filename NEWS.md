@@ -1,3 +1,14 @@
+Release 0.6-r416 (30 JUly, 2026)
+--------------------------------
+
+Notable changes:
+
+ * Bugfix: option `-I` was not working (#57 and #58)
+
+(0.6: 30 July 2026, r416)
+
+
+
 Release 0.5-r414 (25 July 2026)
 -------------------------------
 

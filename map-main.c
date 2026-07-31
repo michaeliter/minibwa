@@ -334,7 +334,6 @@ static void mb_insert_hdr(kstring_t *out, const char *str)
 static ko_longopt_t long_options[] = {
 	{ "kalloc",       ko_no_argument,       301 },
 	{ "outn",         ko_required_argument, 302 },
-	{ "pe-predef",    ko_optional_argument, 303 },
 	{ "rescue",       ko_required_argument, 304 },
 	{ "eqx",          ko_no_argument,       305 },
 	{ "pe",           ko_required_argument, 306 },
@@ -430,6 +429,7 @@ static void set_ins_size(mb_opt_t *opt, const char *arg)
 	opt->pe_hi = *q == ','? strtol(q + 1, &q, 10) : opt->pe_avg + opt->pe_std * 4;
 	opt->pe_lo = *q == ','? strtol(q + 1, &q, 10) : opt->pe_avg - opt->pe_std * 4;
 	if (opt->pe_lo < 1) opt->pe_lo = 1;
+	opt->flag |= MB_F_PE_PREDEF;
 }
 
 int main_map(int argc, char *argv[])
@@ -488,8 +488,6 @@ int main_map(int argc, char *argv[])
 			yes_or_no(&mo, MB_F_NO_KALLOC, o.longidx, o.arg, 0);
 		} else if (c == 302) { // --outn
 			mo.out_n = kom_parse_num(o.arg, 0);
-		} else if (c == 303) { // --pe-predef
-			mo.flag |= MB_F_PE_PREDEF;
 		} else if (c == 304) { // --rescue
 			mo.max_rescue = atoi(o.arg);
 		} else if (c == 305) { // --eqx
